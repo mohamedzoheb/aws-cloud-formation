@@ -1,0 +1,168 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  MyVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock:
+        Ref: VpcCidrBlock
+      Tags:
+      - Key: Name
+        Value: myvpc
+  PublicSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: MyVPC
+      CidrBlock:
+        Ref: PublicSubnetCidrBlock
+      MapPublicIpOnLaunch: 'True'
+      Tags:
+      - Key: Name
+        Value: public_subnet
+  IGW:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties: {}
+  IgwAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId:
+        Ref: MyVPC
+      InternetGatewayId:
+        Ref: IGW
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId:
+        Ref: MyVPC
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: IGW
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: IGW
+  PublicSubnetRouteAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnet
+  InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow HTTP and SSH traffic to our host
+      VpcId:
+        Ref: MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '5985'
+          ToPort: '5985'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '5986'
+          ToPort: '5986'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '3389'
+          ToPort: '3389'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '1'
+          ToPort: '65535'
+          CidrIp: 0.0.0.0/0
+      Tags:
+      - Key: Name
+        Value: my_sec
+  MyEC2Instancecentos:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-00068cd7555f543d5
+      KeyName: KeyPair
+#        Ref: chef
+      SubnetId:
+        Ref: PublicSubnet
+      InstanceType: t2.small
+      SecurityGroupIds:
+        - Ref: InstanceSecurityGroup
+      Tags:
+      - Key: Name
+        Value: centos
+  MyEC2Instanceubuntu:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-04b9e92b5572fa0d1
+      KeyName: KeyPair
+#        Ref: chef
+      SubnetId:
+        Ref: PublicSubnet
+      InstanceType: t2.small
+      SecurityGroupIds:
+        - Ref: InstanceSecurityGroup
+      Tags:
+      - Key: Name
+        Value: ubuntu
+  MyEC2Instancewindows:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-055c10ae78f3a58a2
+      KeyName: KeyPair
+#        Ref: chef
+      SubnetId:
+        Ref: PublicSubnet
+      InstanceType: t2.small
+      SecurityGroupIds:
+        - Ref: InstanceSecurityGroup
+      Tags:
+      - Key: Name
+        Value: windows
+Parameters:
+  VpcCidrBlock:
+    Description: VPC CIDR Range (will be a /16 block)
+    Type: String
+    Default: 10.0.0.0/16
+  PublicSubnetCidrBlock:
+    Description: Public Subnet CIDR Range
+    Type: String
+    Default: 10.0.1.0/24
+#  SSHKeyName:
+#    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+#    Type: 'AWS::EC2::KeyPair::KeyName'
+#    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+Outputs:
+  MyEC2Instance1PublicIP:
+    Value:
+      'Fn::GetAtt':
+        - MyEC2Instancecentos
+        - PublicIp
+  MyEC2Instance2PublicIP:
+    Value:
+      'Fn::GetAtt':
+        - MyEC2Instanceubuntu
+        - PublicIp
+  MyEC2Instance2PublicIP:
+    Value:
+      'Fn::GetAtt':
+        - MyEC2Instancewindows
+        - PublicIp
+
+#  SSHKeyName:
+#    Value:
+#      'Fn::GetAtt':
+#        - chef
+
